@@ -1,0 +1,7 @@
+
+--- Estadísticas ---
+Reservadas: 4
+Variables: 3
+Llaves abiertas: 1
+Paréntesis abiertos: 0
+Errores: 1
