@@ -6,12 +6,12 @@ Abre tu terminal y ejecuta el siguiente comando para verificar la versión de Ja
 ```bash
 java -version
 ```
-##Por ejemplo, la salida puede ser:
+Por ejemplo, la salida puede ser:
 
 ```openjdk version "21.0.8"```
 
 
-##Esto indica que estás usando Java 21.
+Esto indica que estás usando Java 21.
 
 
 ## 2. Configurar el `pom.xml`
