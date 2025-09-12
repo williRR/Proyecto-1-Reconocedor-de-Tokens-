@@ -1,7 +1,24 @@
-
---- Estadísticas ---
-Reservadas: 4
-Variables: 3
-Llaves abiertas: 1
-Paréntesis abiertos: 0
-Errores: 1
+Resumen de Conteo por Palabra
+-----------------------------
+Elemento                  Palabra                   Conteo
+------------------------------------------------------------------
+Palabras Reservadas
+                          new                       5
+                          foreach                   1
+                          using                     2
+                          private                   2
+                          static                    3
+                          public                    9
+                          in                        1
+                          while                     2
+                          class                     2
+                          if                        2
+                          int                       17
+                          return                    4
+Signos de Agrupación
+                          (                         31
+                          )                         31
+                          {                         16
+                          }                         16
+Operadores Aritméticos
+                          =                         30
