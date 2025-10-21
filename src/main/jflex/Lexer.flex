@@ -101,7 +101,6 @@ OPERADOR = ("+"|"-"|"*"|"/"|"%"|"="|"?"|":")
     return crearToken("OPERADOR");
 }
 
-// **CORRECCIÓN Cadenas Interpoladas ($):** Reconoce $ si aparece solo.
 "$" {
     return crearToken("OPERADOR_DOLAR");
 }
@@ -118,7 +117,6 @@ OPERADOR = ("+"|"-"|"*"|"/"|"%"|"="|"?"|":")
 }
 
 // Regla 2: Cadenas normales (pueden ser interpoladas con prefijo $)
-// Nota: La expresión (\$)?\"([^\"\\]|\\.)*\" captura la cadena completa, incluyendo el $.
 (\$)?\"([^\"\\]|\\.)*\" {
     return crearToken("CADENA_NORMAL");
 }
@@ -129,16 +127,14 @@ OPERADOR = ("+"|"-"|"*"|"/"|"%"|"="|"?"|":")
     return crearToken("ERROR_CADENA_SIN_CERRAR");
 }
 
-// **CORRECCIÓN Comentarios:** Se utiliza una expresión más segura para comentarios multi-línea.
-
-// Comentario de una sola línea (ignorado)
+// Comentario de una sola línea
 "//".* {
-    /* ignore */
+    return crearToken("COMENTARIO");
 }
 
 // Comentario de múltiples líneas (cerrado)
 "/*" [^*]* \*+ ([^*/][^*]* \*+)* "/" {
-    /* ignore */
+    return crearToken("COMENTARIO");
 }
 
 // Comentario de múltiples líneas (sin cerrar)
@@ -147,9 +143,9 @@ OPERADOR = ("+"|"-"|"*"|"/"|"%"|"="|"?"|":")
     return crearToken("ERROR_COMENTARIO_SIN_CERRAR");
 }
 
-// **CORRECCIÓN Espacios:** Ignorar explícitamente los espacios, tabs, saltos de línea, etc.
+// **¡CORRECCIÓN CLAVE! Ahora se devuelve un token "ESPACIO" en lugar de ignorarlo.**
 [ \t\r\n\f]+ {
-    /* ignore */
+    return crearToken("ESPACIO");
 }
 
 ";" {

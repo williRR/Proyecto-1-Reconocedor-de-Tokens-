@@ -1,5 +1,3 @@
-// Archivo: codigo/ColoreadorGUI.java
-
 package codigo;
 
 import javax.swing.*;
@@ -96,7 +94,7 @@ public class ColoreadorGUI extends JFrame {
     private void analizarYColorear(File archivo) {
         limpiar();
         try (FileReader fileReader = new FileReader(archivo)) {
-            // Se asume que Lexer es una clase existente (ej. JFlex)
+// Se asume que Lexer es una clase existente (ej. JFlex)
             Lexer lexer = new Lexer(fileReader);
 
             List<Token> tokens = new ArrayList<>();
@@ -104,7 +102,7 @@ public class ColoreadorGUI extends JFrame {
             boolean hayError = false;
             Token primerError = null; // Almacena el primer error para el reporte
 
-            // Fase 1: Analizar todo el archivo y recolectar todos los tokens
+// Fase 1: Analizar todo el archivo y recolectar todos los tokens
             while ((token = lexer.yylex()) != null) {
                 tokens.add(token);
 
@@ -114,7 +112,7 @@ public class ColoreadorGUI extends JFrame {
                 }
             }
 
-            // Nueva validación: balance de paréntesis/llaves/corchetes
+// Nueva validación: balance de paréntesis/llaves/corchetes
             if (!hayError) {
                 Token balanceErr = validarBalance(tokens);
                 if (balanceErr != null) {
@@ -123,9 +121,9 @@ public class ColoreadorGUI extends JFrame {
                 }
             }
 
-            // Fase 2: Mostrar todos los tokens en el JTextPane
+// Fase 2: Mostrar todos los tokens en el JTextPane
             for (Token t : tokens) {
-                // Si este token es el primer error detectado, forzar estilo de error
+// Si este token es el primer error detectado, forzar estilo de error
                 Style estilo;
                 if (hayError && primerError != null && t.getLinea() == primerError.getLinea() && t.getColumna() == primerError.getColumna() && t.getLexema().equals(primerError.getLexema())) {
                     estilo = estiloError;
@@ -140,21 +138,21 @@ public class ColoreadorGUI extends JFrame {
                 }
             }
 
-            // Fase 3: Reportar el resultado del análisis
+// Fase 3: Reportar el resultado del análisis
             if (hayError) {
-                // Si hay errores, reporta el primer error encontrado
+// Si hay errores, reporta el primer error encontrado
                 statusLabel.setText(String.format(
                         "ERROR en línea %d, columna %d: '%s'",
                         primerError.getLinea(), primerError.getColumna(), primerError.getLexema()));
                 statusLabel.setForeground(Color.WHITE);
                 statusLabel.setBackground(Color.RED);
             } else {
-                // Si no hay errores, el archivo es válido
+// Si no hay errores, el archivo es válido
                 statusLabel.setText("\u2713 Archivo válido - Análisis completado exitosamente");
                 statusLabel.setForeground(new Color(0, 128, 0));
                 statusLabel.setBackground(new Color(240, 240, 240));
 
-                // Generar reporte solo si el análisis es exitoso
+// Generar reporte solo si el análisis es exitoso
                 generarReporte(lexer, archivo.getName());
             }
 
@@ -215,13 +213,19 @@ public class ColoreadorGUI extends JFrame {
             case "OPERADOR":
             case "PUNTO_COMA":
             case "COMA":
-            case "PUNTO": return estiloComparacion;
-            case "CADENA": return estiloCadena;
+            case "PUNTO":
+            case "OPERADOR_DOLAR": return estiloComparacion;
+            case "CADENA_NORMAL":
+            case "CADENA_VERBATIM": return estiloCadena;
             case "IDENTIFICADOR": return estiloIdentificador;
             case "COMENTARIO": return estiloComentario;
+            case "ESPACIO": return estiloNormal; // <-- ¡NUEVA LÍNEA! Aplica estilo normal para mantener el formato.
             case "ERROR":
             case "ERROR_CADENA":
-            case "ERROR_COMENTARIO": return estiloError;
+            case "ERROR_COMENTARIO":
+            case "ERROR_CADENA_SIN_CERRAR":
+            case "ERROR_COMENTARIO_SIN_CERRAR":
+            case "ERROR_LEXICO_SIMBOLO_NO_VALIDO": return estiloError;
             default: return estiloNormal;
         }
     }
@@ -232,14 +236,14 @@ public class ColoreadorGUI extends JFrame {
     private void generarReporte(Lexer lexer, String nombreArchivo) {
         String nombreReporte = "Reporte_" + nombreArchivo + ".txt";
 
-        // Se define el formato del reporte, pero se usa la clase externa para escribirlo.
+// Se define el formato del reporte, pero se usa la clase externa para escribirlo.
         try (PrintWriter writer = new PrintWriter(new FileWriter(nombreReporte))) {
             writer.println("=".repeat(60));
             writer.println("REPORTE DE ANÁLISIS LÉXICO");
             writer.println("=".repeat(60));
             writer.println("Archivo: " + nombreArchivo);
 
-            // Llama al método estático de la clase ArchivoSalida
+// Llama al método estático de la clase ArchivoSalida
             ArchivoSalida.logStatistics(lexer, writer);
 
             System.out.println("Reporte generado: " + nombreReporte);
