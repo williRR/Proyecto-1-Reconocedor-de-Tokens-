@@ -8,6 +8,8 @@ import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 public class ColoreadorGUI extends JFrame {
     // ... (Variables de instancia y métodos initComponents(), initEstilos(), abrirArchivo() son correctos)
@@ -100,52 +102,59 @@ public class ColoreadorGUI extends JFrame {
             List<Token> tokens = new ArrayList<>();
             Token token;
             boolean hayError = false;
-            Token primerError = null;
+            Token primerError = null; // Almacena el primer error para el reporte
 
+            // Fase 1: Analizar todo el archivo y recolectar todos los tokens
             while ((token = lexer.yylex()) != null) {
                 tokens.add(token);
 
                 if (token.getTipo().startsWith("ERROR") && !hayError) {
                     hayError = true;
-                    primerError = token;
+                    primerError = token; // Guarda el primer error encontrado
                 }
             }
 
-            for (Token t : tokens) {
-                // Manejo de espacios (asumiendo que Lexer los clasifica como "ESPACIO")
-                if ("ESPACIO".equals(t.getTipo())) {
-                    try {
-                        doc.insertString(doc.getLength(), t.getLexema(), estiloNormal);
-                    } catch (BadLocationException e) {
-                        e.printStackTrace();
-                    }
-                    continue;
+            // Nueva validación: balance de paréntesis/llaves/corchetes
+            if (!hayError) {
+                Token balanceErr = validarBalance(tokens);
+                if (balanceErr != null) {
+                    hayError = true;
+                    primerError = balanceErr;
                 }
+            }
 
-                Style estilo = obtenerEstilo(t.getTipo());
+            // Fase 2: Mostrar todos los tokens en el JTextPane
+            for (Token t : tokens) {
+                // Si este token es el primer error detectado, forzar estilo de error
+                Style estilo;
+                if (hayError && primerError != null && t.getLinea() == primerError.getLinea() && t.getColumna() == primerError.getColumna() && t.getLexema().equals(primerError.getLexema())) {
+                    estilo = estiloError;
+                } else {
+                    estilo = obtenerEstilo(t.getTipo());
+                }
 
                 try {
                     doc.insertString(doc.getLength(), t.getLexema(), estilo);
                 } catch (BadLocationException e) {
                     e.printStackTrace();
                 }
-
-                if (hayError && t == primerError) {
-                    statusLabel.setText(String.format(
-                            "ERROR en línea %d, columna %d: '%s'",
-                            t.getLinea(), t.getColumna(), t.getLexema()));
-                    statusLabel.setForeground(Color.WHITE);
-                    statusLabel.setBackground(Color.RED);
-                    break;
-                }
             }
 
-            if (!hayError) {
-                statusLabel.setText("✓ Archivo válido - Análisis completado exitosamente");
+            // Fase 3: Reportar el resultado del análisis
+            if (hayError) {
+                // Si hay errores, reporta el primer error encontrado
+                statusLabel.setText(String.format(
+                        "ERROR en línea %d, columna %d: '%s'",
+                        primerError.getLinea(), primerError.getColumna(), primerError.getLexema()));
+                statusLabel.setForeground(Color.WHITE);
+                statusLabel.setBackground(Color.RED);
+            } else {
+                // Si no hay errores, el archivo es válido
+                statusLabel.setText("\u2713 Archivo válido - Análisis completado exitosamente");
                 statusLabel.setForeground(new Color(0, 128, 0));
                 statusLabel.setBackground(new Color(240, 240, 240));
 
-                // DELEGAR A ArchivoSalida: Llama al método estático aquí
+                // Generar reporte solo si el análisis es exitoso
                 generarReporte(lexer, archivo.getName());
             }
 
@@ -154,6 +163,42 @@ public class ColoreadorGUI extends JFrame {
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Error al leer el archivo", "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    /**
+     * Valida el balance de paréntesis/llaves/corchetes. Devuelve un Token de tipo ERROR
+     * con la posición del primer símbolo desequilibrado, o null si todo está balanceado.
+     */
+    private Token validarBalance(List<Token> tokens) {
+        Deque<Token> stack = new ArrayDeque<>();
+
+        for (Token t : tokens) {
+            String tipo = t.getTipo();
+            if ("PARENTESIS_ABIERTO".equals(tipo) || "LLAVE_ABIERTA".equals(tipo) || "CORCHETE_ABIERTO".equals(tipo)) {
+                stack.push(t);
+            } else if ("PARENTESIS_CERRADO".equals(tipo)) {
+                if (stack.isEmpty() || !"PARENTESIS_ABIERTO".equals(stack.peek().getTipo())) {
+                    return new Token("ERROR", t.getLexema(), t.getLinea(), t.getColumna());
+                }
+                stack.pop();
+            } else if ("LLAVE_CERRADA".equals(tipo)) {
+                if (stack.isEmpty() || !"LLAVE_ABIERTA".equals(stack.peek().getTipo())) {
+                    return new Token("ERROR", t.getLexema(), t.getLinea(), t.getColumna());
+                }
+                stack.pop();
+            } else if ("CORCHETE_CERRADO".equals(tipo)) {
+                if (stack.isEmpty() || !"CORCHETE_ABIERTO".equals(stack.peek().getTipo())) {
+                    return new Token("ERROR", t.getLexema(), t.getLinea(), t.getColumna());
+                }
+                stack.pop();
+            }
+        }
+
+        if (!stack.isEmpty()) {
+            Token open = stack.peek();
+            return new Token("ERROR", open.getLexema(), open.getLinea(), open.getColumna());
+        }
+        return null;
     }
 
     private Style obtenerEstilo(String tipoToken) {

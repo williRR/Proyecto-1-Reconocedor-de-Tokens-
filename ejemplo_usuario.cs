@@ -1,9 +1,5 @@
-
-//*Algoritmo 2 Calculadora*
 using System;
-
-class Programa
-{
+class Programa {
     static void Main()holaaa
     {
         Console.WriteLine("¡Hola! Vamos a hacer unas operaciones básicas.");
@@ -39,3 +35,4 @@ class Programa
         }
     }
 }
+

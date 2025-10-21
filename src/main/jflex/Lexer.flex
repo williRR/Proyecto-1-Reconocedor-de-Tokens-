@@ -44,7 +44,7 @@ RESERVADAS = ("abstract"|"as"|"base"|"bool"|"break"|"byte"|"case"|"catch"|"char"
               "virtual"|"void"|"volatile"|"while")
 
 COMPARACION = (">"|"<"|"=="|"!="|">="|"<="|"&&"|"||"|"!")
-OPERADOR = ("+"|"-"|"*"|"/"|"%"|"=")
+OPERADOR = ("+"|"-"|"*"|"/"|"%"|"="|"?"|":")
 
 // ======================
 // Reglas del analizador
@@ -71,6 +71,7 @@ OPERADOR = ("+"|"-"|"*"|"/"|"%"|"=")
 }
 
 ")" {
+    parentesis++;
     return crearToken("PARENTESIS_CERRADO");
 }
 
@@ -80,6 +81,7 @@ OPERADOR = ("+"|"-"|"*"|"/"|"%"|"=")
 }
 
 "}" {
+    llaves++;
     return crearToken("LLAVE_CERRADA");
 }
 
@@ -99,30 +101,55 @@ OPERADOR = ("+"|"-"|"*"|"/"|"%"|"=")
     return crearToken("OPERADOR");
 }
 
-\"([^\"\\]|\\.)*\" {
-    return crearToken("CADENA");
+// **CORRECCIÓN Cadenas Interpoladas ($):** Reconoce $ si aparece solo.
+"$" {
+    return crearToken("OPERADOR_DOLAR");
 }
 
-\"([^\"\\]|\\.)* {
+// Regla 1: Cadenas verbatim y/o interpoladas con @ (soporta "" como escape interno)
+(\$@|@\$|@)\"([^\"]|\"\")*\" {
+    return crearToken("CADENA_VERBATIM");
+}
+
+// Caso de cadena verbatim sin cerrar
+(\$@|@\$|@)\"([^\"]|\"\")* {
     errores++;
-    return crearToken("ERROR_CADENA");
+    return crearToken("ERROR_CADENA_SIN_CERRAR");
 }
 
+// Regla 2: Cadenas normales (pueden ser interpoladas con prefijo $)
+// Nota: La expresión (\$)?\"([^\"\\]|\\.)*\" captura la cadena completa, incluyendo el $.
+(\$)?\"([^\"\\]|\\.)*\" {
+    return crearToken("CADENA_NORMAL");
+}
+
+// Caso de cadena normal sin cerrar (opcional $)
+(\$)?\"([^\"\\]|\\.)* {
+    errores++;
+    return crearToken("ERROR_CADENA_SIN_CERRAR");
+}
+
+// **CORRECCIÓN Comentarios:** Se utiliza una expresión más segura para comentarios multi-línea.
+
+// Comentario de una sola línea (ignorado)
 "//".* {
-    return crearToken("COMENTARIO");
+    /* ignore */
 }
 
-"/*"([^*]|\*+[^*/])*\*+"/" {
-    return crearToken("COMENTARIO");
+// Comentario de múltiples líneas (cerrado)
+"/*" [^*]* \*+ ([^*/][^*]* \*+)* "/" {
+    /* ignore */
 }
 
-"/*"([^*]|\*+[^*/])* {
+// Comentario de múltiples líneas (sin cerrar)
+"/*" [^*]* \*+ ([^*/][^*]* \*+)* {
     errores++;
-    return crearToken("ERROR_COMENTARIO");
+    return crearToken("ERROR_COMENTARIO_SIN_CERRAR");
 }
 
+// **CORRECCIÓN Espacios:** Ignorar explícitamente los espacios, tabs, saltos de línea, etc.
 [ \t\r\n\f]+ {
-    return crearToken("ESPACIO");
+    /* ignore */
 }
 
 ";" {
@@ -137,7 +164,8 @@ OPERADOR = ("+"|"-"|"*"|"/"|"%"|"=")
     return crearToken("PUNTO");
 }
 
+// Regla de error al final para atrapar cualquier cosa no reconocida.
 . {
     errores++;
-    return crearToken("ERROR");
+    return crearToken("ERROR_LEXICO_SIMBOLO_NO_VALIDO");
 }
