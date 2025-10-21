@@ -5,7 +5,7 @@ package codigo;
 %class Lexer
 %unicode
 %public
-%type String
+%type Token
 %line
 %column
 
@@ -16,6 +16,14 @@ package codigo;
   public int llaves = 0;
   public int parentesis = 0;
   public int errores = 0;
+
+  private Token crearToken(String tipo, String lexema) {
+      return new Token(tipo, lexema, yyline + 1, yycolumn + 1);
+  }
+
+  private Token crearToken(String tipo) {
+      return new Token(tipo, yytext(), yyline + 1, yycolumn + 1);
+  }
 %}
 
 // ======================
@@ -24,6 +32,7 @@ package codigo;
 DIGITO     = [0-9]
 LETRA      = [a-zA-Z_]
 ID         = {LETRA}({LETRA}|{DIGITO})*
+NUMERO     = {DIGITO}+("."{DIGITO}+)?
 
 RESERVADAS = ("abstract"|"as"|"base"|"bool"|"break"|"byte"|"case"|"catch"|"char"|"checked"|"class"|"const"|"continue"|
               "decimal"|"default"|"delegate"|"do"|"double"|"else"|"enum"|"event"|"explicit"|"extern"|
@@ -34,6 +43,9 @@ RESERVADAS = ("abstract"|"as"|"base"|"bool"|"break"|"byte"|"case"|"catch"|"char"
               "this"|"throw"|"true"|"try"|"typeof"|"uint"|"ulong"|"unchecked"|"unsafe"|"ushort"|"using"|
               "virtual"|"void"|"volatile"|"while")
 
+COMPARACION = (">"|"<"|"=="|"!="|">="|"<="|"&&"|"||"|"!")
+OPERADOR = ("+"|"-"|"*"|"/"|"%"|"=")
+
 // ======================
 // Reglas del analizador
 // ======================
@@ -41,47 +53,91 @@ RESERVADAS = ("abstract"|"as"|"base"|"bool"|"break"|"byte"|"case"|"catch"|"char"
 
 {RESERVADAS} {
     reservadas++;
-    return "RESERVADA(" + yytext() + ")";
+    return crearToken("RESERVADA");
 }
 
 {ID} {
     variables++;
-    return "IDENTIFICADOR(" + yytext() + ")";
+    return crearToken("IDENTIFICADOR");
 }
 
-"{" {
-    llaves++;
-    return "LLAVE_ABIERTA";
+{NUMERO} {
+    return crearToken("NUMERO");
 }
 
 "(" {
     parentesis++;
-    return "PARENTESIS_ABIERTO";
+    return crearToken("PARENTESIS_ABIERTO");
+}
+
+")" {
+    return crearToken("PARENTESIS_CERRADO");
+}
+
+"{" {
+    llaves++;
+    return crearToken("LLAVE_ABIERTA");
+}
+
+"}" {
+    return crearToken("LLAVE_CERRADA");
+}
+
+"[" {
+    return crearToken("CORCHETE_ABIERTO");
+}
+
+"]" {
+    return crearToken("CORCHETE_CERRADO");
+}
+
+{COMPARACION} {
+    return crearToken("COMPARACION");
+}
+
+{OPERADOR} {
+    return crearToken("OPERADOR");
 }
 
 \"([^\"\\]|\\.)*\" {
-    return "CADENA";
+    return crearToken("CADENA");
 }
 
-// Cadena mal cerrada (error)
 \"([^\"\\]|\\.)* {
     errores++;
-    return "ERROR_CADENA";
+    return crearToken("ERROR_CADENA");
 }
 
-// Números
-{DIGITO}+ {
-    return "NUMERO(" + yytext() + ")";
+"//".* {
+    return crearToken("COMENTARIO");
 }
 
-// Comentarios de línea //
-"//".* { /* ignorar */ }
+"/*"([^*]|\*+[^*/])*\*+"/" {
+    return crearToken("COMENTARIO");
+}
 
-// Comentarios de bloque /* ... */
-"/*"([^*]|\*+[^*/])*\*+"/" { /* ignorar */ }
+"/*"([^*]|\*+[^*/])* {
+    errores++;
+    return crearToken("ERROR_COMENTARIO");
+}
 
-// Espacios y saltos de línea
-[ \t\r\n\f]+ { /* ignorar */ }
+[ \t\r\n\f]+ {
+    return crearToken("ESPACIO");
+}
 
-// Cualquier otro símbolo
-. { return "OTRO(" + yytext() + ")"; }
+";" {
+    return crearToken("PUNTO_COMA");
+}
+
+"," {
+    return crearToken("COMA");
+}
+
+"." {
+    return crearToken("PUNTO");
+}
+
+. {
+    errores++;
+    return crearToken("ERROR");
+}
