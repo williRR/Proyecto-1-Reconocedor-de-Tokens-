@@ -1,5 +1,7 @@
 package codigo;
 
+  import java.util.HashSet;
+    import java.util.Set;
 %%
 
 %class Lexer
@@ -10,12 +12,15 @@ package codigo;
 %column
 
 %{
+
   // Contadores globales
   public int reservadas = 0;
   public int variables = 0;
   public int llaves = 0;
   public int parentesis = 0;
   public int errores = 0;
+
+   public Set<String> nombresVariables = new HashSet<>();
 
   private Token crearToken(String tipo, String lexema) {
       return new Token(tipo, lexema, yyline + 1, yycolumn + 1);
@@ -58,8 +63,11 @@ OPERADOR = ("+"|"-"|"*"|"/"|"%"|"="|"?"|":")
 
 {ID} {
     variables++;
+    nombresVariables.add(yytext());
     return crearToken("IDENTIFICADOR");
 }
+
+
 
 {NUMERO} {
     return crearToken("NUMERO");
